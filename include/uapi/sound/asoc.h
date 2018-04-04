@@ -153,6 +153,10 @@
 #define SND_SOC_TPLG_DAI_CLK_GATE_GATED	1
 #define SND_SOC_TPLG_DAI_CLK_GATE_CONT		2
 
+/* DAI mclk_direction */
+#define SND_SOC_TPLG_MCLK_CO            0 /* for codec, mclk is output */
+#define SND_SOC_TPLG_MCLK_CI            1 /* for codec, mclk is input */
+
 /* DAI physical PCM data formats.
  * Add new formats to the end of the list.
  */
