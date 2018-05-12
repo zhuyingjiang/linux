@@ -1865,18 +1865,18 @@ EXPORT_SYMBOL_GPL(snd_soc_set_dmi_name);
 
 static void soc_check_tplg_fes(struct snd_soc_card *card)
 {
-	struct snd_soc_platform *platform;
+	struct snd_soc_component *component;
 	struct snd_soc_dai_link *dai_link;
 	int i;
 
-	list_for_each_entry(platform, &platform_list, list) {
+	list_for_each_entry(component, &card->component_dev_list, card_list) {
 
 		/* does this platform override FEs ? */
-		if (!platform->driver->ignore_machine)
+		if (!component->driver->ignore_machine)
 			continue;
 
 		/* for this machine ? */
-		if (strcmp(platform->driver->ignore_machine,
+		if (strcmp(component->driver->ignore_machine,
 			   card->dev->driver->name))
 			continue;
 
@@ -1895,8 +1895,8 @@ static void soc_check_tplg_fes(struct snd_soc_card *card)
 				 card->dai_link[i].name);
 
 			/* override platform */
-			dai_link->platform_name = platform->component.name;
-			dai_link->cpu_dai_name = platform->component.name;
+			dai_link->platform_name = component->name;
+			dai_link->cpu_dai_name = component->name;
 
 			/* convert non BE into BE */
 			dai_link->no_pcm = 1;
@@ -1905,7 +1905,7 @@ static void soc_check_tplg_fes(struct snd_soc_card *card)
 
 			/* override any BE fixups */
 			dai_link->be_hw_params_fixup =
-				platform->driver->be_hw_params_fixup;
+				component->driver->be_hw_params_fixup;
 
 			/* most BE links don't set stream name, so set it to
 			 * dai link name if it's NULL to help bind widgets.
@@ -1915,9 +1915,11 @@ static void soc_check_tplg_fes(struct snd_soc_card *card)
 		}
 
 		/* Inform userspace we are using alternate topology */
-		if (platform->driver->topology_name_prefix) {
+		if (component->driver->topology_name_prefix &&
+			card->name != card->topology_shortname) {
+
 			snprintf(card->topology_shortname, 32, "%s-%s",
-				 platform->driver->topology_name_prefix,
+				 component->driver->topology_name_prefix,
 				 card->name);
 			card->name = card->topology_shortname;
 		}
