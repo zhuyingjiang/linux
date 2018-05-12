@@ -603,6 +603,7 @@ void snd_sof_new_platform_drv(struct snd_sof_dev *sdev)
 	dev_dbg(sdev->dev, "using platform alias %s\n",
 		plat_data->machine->asoc_plat_name);
 
+	pd->name = "sof-audio";
 	pd->probe = sof_pcm_probe;
 	pd->remove = sof_pcm_remove;
 	pd->ops	= &sof_pcm_ops;
