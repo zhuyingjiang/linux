@@ -1464,6 +1464,8 @@ static int soc_probe_link_dais(struct snd_soc_card *card,
 {
 	struct snd_soc_dai_link *dai_link = rtd->dai_link;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct snd_soc_rtdcom_list *rtdcom;
+	struct snd_soc_component *component;
 	int i, ret, num;
 
 	dev_dbg(card->dev, "ASoC: probe %s dai link %d late %d\n",
@@ -1510,18 +1512,23 @@ static int soc_probe_link_dais(struct snd_soc_card *card,
 		soc_dpcm_debugfs_add(rtd);
 #endif
 
+	num = rtd->num;
+
 	/*
 	 * most drivers will register their PCMs using DAI link ordering but
 	 * topology based drivers can use the DAI link id field to set PCM
 	 * device number and then use rtd + a base offset of the BEs.
 	 */
-	if (rtd->platform->driver->use_dai_pcm_id) {
+	for_each_rtdcom(rtd, rtdcom) {
+		component = rtdcom->component;
+
+		if (!component->driver->use_dai_pcm_id)
+			continue;
+
 		if (rtd->dai_link->no_pcm)
-			num = rtd->platform->driver->be_pcm_base + rtd->num;
+			num += component->driver->be_pcm_base;
 		else
 			num = rtd->dai_link->id;
-	} else {
-		num = rtd->num;
 	}
 
 	if (cpu_dai->driver->compress_new) {
