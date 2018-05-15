@@ -56,6 +56,8 @@
 
 #define BYT_PCI_BAR_SIZE	0x200000
 
+#define BYT_PANIC_OFFSET(x)	(((x) & (0xFFFFll << 32)) >> 32)
+
 /*
  * Debug
  */
@@ -391,10 +393,8 @@ static irqreturn_t byt_irq_thread(int irq, void *context)
 	if (ipcd & SHIM_BYT_IPCD_BUSY) {
 		/* Handle messages from DSP Core */
 		if ((ipcd & SOF_IPC_PANIC_MAGIC_MASK) == SOF_IPC_PANIC_MAGIC) {
-			dev_err(sdev->dev, "error : DSP panic!\n");
-			snd_sof_dsp_cmd_done(sdev);
-			snd_sof_dsp_dbg_dump(sdev, SOF_DBG_REGS | SOF_DBG_MBOX);
-			snd_sof_trace_notify_for_error(sdev);
+			snd_sof_dsp_panic(sdev, BYT_PANIC_OFFSET(ipcd) +
+					  MBOX_OFFSET);
 		} else {
 			snd_sof_ipc_msgs_rx(sdev);
 		}
