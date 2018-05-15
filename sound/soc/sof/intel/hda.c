@@ -233,7 +233,7 @@ static const struct sof_intel_dsp_desc chip_info[] = {
 	.ops = &sof_skl_ops,
 },
 {
-	/* Apollolake */
+	/* Apollolake - BXT-P */
 	.id = 0x5a98,
 	.cores_num = 2,
 	.cores_mask = HDA_DSP_CORE_MASK(0) | HDA_DSP_CORE_MASK(1),
@@ -245,8 +245,20 @@ static const struct sof_intel_dsp_desc chip_info[] = {
 	.ops = &sof_apl_ops,
 },
 {
-	/* Apollolake */
+	/* BXT-M */
 	.id = 0x1a98,
+	.cores_num = 2,
+	.cores_mask = HDA_DSP_CORE_MASK(0) | HDA_DSP_CORE_MASK(1),
+	.ipc_req = HDA_DSP_REG_HIPCI,
+	.ipc_req_mask = HDA_DSP_REG_HIPCI_BUSY,
+	.ipc_ack = HDA_DSP_REG_HIPCIE,
+	.ipc_ack_mask = HDA_DSP_REG_HIPCIE_DONE,
+	.ipc_ctl = HDA_DSP_REG_HIPCCTL,
+	.ops = &sof_apl_ops,
+},
+{
+	/* GeminiLake */
+	.id = 0x3198,
 	.cores_num = 2,
 	.cores_mask = HDA_DSP_CORE_MASK(0) | HDA_DSP_CORE_MASK(1),
 	.ipc_req = HDA_DSP_REG_HIPCI,
