@@ -149,10 +149,10 @@ static void hda_dsp_get_registers(struct snd_sof_dev *sdev,
 				  struct sof_ipc_dsp_oops_xtensa *xoops,
 				  u32 *stack, size_t stack_words)
 {
-	/* first read regsisters */
+	/* first read registers */
 	hda_dsp_block_read(sdev, sdev->dsp_oops_offset, xoops, sizeof(*xoops));
 
-	/* the get the stack */
+	/* then get the stack */
 	hda_dsp_block_read(sdev, sdev->dsp_oops_offset + sizeof(*xoops), stack,
 			   stack_words * sizeof(u32));
 }
@@ -455,7 +455,7 @@ int hda_dsp_probe(struct snd_sof_dev *sdev)
 		goto irq_err;
 	}
 
-	/* re-enable CGCTL.MISCBDCGE after rest */
+	/* re-enable CGCTL.MISCBDCGE after reset */
 	snd_sof_pci_update_bits(sdev, PCI_CGCTL,
 				PCI_CGCTL_MISCBDCGE_MASK,
 				PCI_CGCTL_MISCBDCGE_MASK);
