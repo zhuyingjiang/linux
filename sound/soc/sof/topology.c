@@ -20,11 +20,162 @@
 #include <linux/string.h>
 #include <sound/soc-topology.h>
 #include <sound/soc.h>
+#include <uapi/sound/tlv.h>
+#include <sound/tlv.h>
 #include <uapi/sound/sof-ipc.h>
 #include <uapi/sound/sof-topology.h>
 #include "sof-priv.h"
 
 #define COMP_ID_UNASSIGNED		0xffffffff
+/* Constants used in the computation of linear volume gain from dB gain */
+/* 20th root of 10 in Q1.16 fixed-point notation*/
+#define VOL_TWENTIETH_ROOT_OF_TEN	73533
+/* 40th root of 10 in Q1.16 fixed-point notation*/
+#define VOL_FORTIETH_ROOT_OF_TEN	69419
+/* Volume fractional word length */
+#define VOLUME_FWL	16
+/* 0.5 dB step value in topology TLV */
+#define VOL_HALF_DB_STEP	50
+
+/* TLV data items */
+#define TLV_ITEMS	3
+#define TLV_MIN		0
+#define TLV_STEP	1
+#define TLV_MUTE	2
+
+static inline int get_tlv_data(const int *p, int tlv[TLV_ITEMS])
+{
+	/* we only support dB scale TLV type at the moment */
+	if ((int)p[SNDRV_CTL_TLVO_TYPE] != SNDRV_CTL_TLVT_DB_SCALE)
+		return -EINVAL;
+
+	/* min value in topology tlv data is multiplied by 100 */
+	tlv[TLV_MIN] = (int)p[SNDRV_CTL_TLVO_DB_SCALE_MIN] / 100;
+
+	/* volume steps */
+	tlv[TLV_STEP] = (int)(p[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] &
+				TLV_DB_SCALE_MASK);
+
+	/* mute ON/OFF */
+	if ((p[SNDRV_CTL_TLVO_DB_SCALE_MUTE_AND_STEP] &
+		TLV_DB_SCALE_MUTE) == 0)
+		tlv[TLV_MUTE] = 0;
+	else
+		tlv[TLV_MUTE] = 1;
+
+	return 0;
+}
+
+/* Function to truncate an unsigned 64-bit number
+ * by x bits and return 32-bit unsigned number
+ * This function also takes care of rounding while truncating
+ */
+static inline u32 vol_shift_64(u64 i, u32 x)
+{
+	/* do not truncate more than 32 bits */
+	if (x > 32)
+		x = 32;
+
+	if (x == 0)
+		return (u32)i;
+
+	return (u32)(((i >> (x - 1)) + 1) >> 1);
+}
+
+/* Function to compute a ^ exp where,
+ * a is a fractional number represented by a fixed-point integer
+ * with a fractional world length of "fwl"
+ * exp is an integer
+ * fwl is the fractional word length
+ * Return value is a fractional number represented by a fixed-point
+ * integer with a fractional word length of "fwl"
+ */
+static u32 vol_pow32(u32 a, int exp, u32 fwl)
+{
+	int i, iter;
+	u32 power = 1 << fwl;
+
+	/* if exponent is 0, return 1 */
+	if (exp == 0)
+		return power;
+
+	/* determine the number of iterations based on the exponent */
+	if (exp < 0)
+		iter = exp * -1;
+	else
+		iter = exp;
+
+	/* mutiply a "iter" times to compute power */
+	for (i = 0; i < iter; i++) {
+		/* Product of 2 Qx.fwl fixed-point numbers yields a Q2*x.2*fwl
+		 * Truncate product back to fwl fractional bits with rounding
+		 */
+		power = vol_shift_64((u64)power * a, fwl);
+	}
+
+	if (exp > 0) {
+		/* if exp is positive, return the result */
+		return power;
+	}
+
+	/* if exp is negative, return the multiplicative inverse */
+	return (u32)((u64)(1 << fwl) * (1 << fwl) / power);
+}
+
+/* Function to calculate volume gain from TLV data
+ * This function can only handle gain steps that are multiples of 0.5 dB
+ */
+static u32 vol_compute_gain(u32 value, int *tlv)
+{
+	int dB_gain;
+	u32 linear_gain;
+	int f_step;
+
+	/* mute volume */
+	if (value == 0 && tlv[TLV_MUTE])
+		return 0;
+
+	/* compute dB gain from tlv
+	 * tlv_step in topology is multiplied by 100
+	 */
+	dB_gain = tlv[TLV_MIN] + (value * tlv[TLV_STEP]) / 100;
+
+	/* compute linear gain
+	 * represented by fixed-point int with VOLUME_FWL fractional bits
+	 */
+	linear_gain = vol_pow32(VOL_TWENTIETH_ROOT_OF_TEN, dB_gain, VOLUME_FWL);
+
+	/* extract the fractional part of volume step */
+	f_step = tlv[TLV_STEP] - (tlv[TLV_STEP] / 100);
+
+	/* if volume step is an odd multiple of 0.5 dB */
+	if (f_step == VOL_HALF_DB_STEP && (value & 1))
+		linear_gain = vol_shift_64((u64)linear_gain *
+						  VOL_FORTIETH_ROOT_OF_TEN,
+						  VOLUME_FWL);
+
+	return linear_gain;
+}
+
+/* Set up volume table for kcontrols from tlv data
+ * "size" specifies the number of entries in the table
+ */
+static int set_up_volume_table(struct snd_sof_control *scontrol,
+			       int tlv[TLV_ITEMS], int size)
+{
+	int j;
+
+	/* init the volume table */
+	scontrol->volume_table = kcalloc(size, sizeof(u32), GFP_KERNEL);
+	if (!scontrol->volume_table)
+		return -ENOMEM;
+
+	/* populate the volume table */
+	for (j = 0; j < size ; j++)
+		scontrol->volume_table[j] = vol_compute_gain(j, tlv);
+
+	return 0;
+}
 
 struct sof_dai_types {
 	const char *name;
@@ -790,12 +941,39 @@ static int sof_widget_load_pga(struct snd_soc_component *scomp, int index,
 	struct snd_sof_dev *sdev = snd_soc_component_get_drvdata(scomp);
 	struct snd_soc_tplg_private *private = &tw->priv;
 	struct sof_ipc_comp_volume volume;
-	int ret;
+	struct snd_soc_dapm_widget *widget = swidget->widget;
+	const struct snd_kcontrol_new *kc = NULL;
+	struct soc_mixer_control *sm;
+	struct snd_sof_control *scontrol;
+	const unsigned int *p;
+	int ret, tlv[TLV_ITEMS];
 
 	if (tw->num_kcontrols != 1) {
 		dev_err(sdev->dev, "error: invalid kcontrol count %d for volume\n",
 			tw->num_kcontrols);
 		return -EINVAL;
+	}
+
+	/* set up volume gain tables for kcontrol */
+	kc = &widget->kcontrol_news[0];
+	sm = (struct soc_mixer_control *)kc->private_value;
+
+	/* get volume control */
+	scontrol = sm->dobj.private;
+
+	/* get topology tlv data */
+	p = kc->tlv.p;
+
+	/* extract tlv data */
+	if (get_tlv_data(p, tlv) < 0) {
+		dev_err(sdev->dev, "error: invalid TLV data\n");
+		return -EINVAL;
+	}
+
+	/* set up volume table */
+	if (set_up_volume_table(scontrol, tlv, sm->max) < 0) {
+		dev_err(sdev->dev, "error: setting up volume table\n");
+		return -ENOMEM;
 	}
 
 	/* configure dai IPC message */
