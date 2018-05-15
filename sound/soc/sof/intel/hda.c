@@ -311,10 +311,10 @@ int hda_dsp_probe(struct snd_sof_dev *sdev)
 	int i;
 	int ret = 0;
 
-	chip = get_chip_info(sdev->pci->device);
+	chip = get_chip_info(pci->device);
 	if (!chip) {
 		dev_err(sdev->dev, "no such device supported, chip id:%x\n",
-			sdev->pci->device);
+			pci->device);
 		ret = -EIO;
 		goto err;
 	}
@@ -443,10 +443,10 @@ int hda_dsp_probe(struct snd_sof_dev *sdev)
 				SOF_HDA_INT_CTRL_EN | SOF_HDA_INT_GLOBAL_EN,
 				SOF_HDA_INT_CTRL_EN | SOF_HDA_INT_GLOBAL_EN);
 
-	dev_dbg(sdev->dev, "using PCI IRQ %d\n", sdev->pci->irq);
+	dev_dbg(sdev->dev, "using PCI IRQ %d\n", pci->irq);
 
 	/* register our IRQ */
-	ret = request_threaded_irq(sdev->pci->irq, hda_dsp_stream_interrupt,
+	ret = request_threaded_irq(pci->irq, hda_dsp_stream_interrupt,
 				   hda_dsp_stream_threaded_handler,
 				    IRQF_SHARED, "AudioHDA", sdev);
 	if (ret < 0) {
@@ -491,7 +491,7 @@ int hda_dsp_probe(struct snd_sof_dev *sdev)
 	return 0;
 
 irq_err:
-	free_irq(sdev->pci->irq, sdev);
+	free_irq(pci->irq, sdev);
 stream_err:
 	hda_dsp_stream_free(sdev);
 err:
