@@ -169,11 +169,7 @@ irqreturn_t hda_dsp_ipc_irq_thread(int irq, void *context)
 		/* handle messages from DSP */
 		if ((hipct & SOF_IPC_PANIC_MAGIC_MASK) == SOF_IPC_PANIC_MAGIC) {
 			/* this is a PANIC message !! */
-			dev_err(sdev->dev, "error : DSP panic!\n");
-
-			snd_sof_dsp_cmd_done(sdev);
-			snd_sof_dsp_dbg_dump(sdev, SOF_DBG_REGS | SOF_DBG_MBOX);
-			snd_sof_trace_notify_for_error(sdev);
+			snd_sof_dsp_panic(sdev, HDA_DSP_PANIC_OFFSET(msg_ext));
 		} else {
 			/* normal message - process normally*/
 			snd_sof_ipc_msgs_rx(sdev);
