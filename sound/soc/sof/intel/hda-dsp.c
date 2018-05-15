@@ -213,7 +213,7 @@ int hda_dsp_core_reset_power_down(struct snd_sof_dev *sdev,
 {
 	int ret;
 
-	/* place core in reset prior to power doown */
+	/* place core in reset prior to power down */
 	ret = hda_dsp_core_stall_reset(sdev, core_mask);
 	if (ret < 0) {
 		dev_err(sdev->dev, "error: dsp core reset failed: core_mask %x\n",
@@ -221,7 +221,7 @@ int hda_dsp_core_reset_power_down(struct snd_sof_dev *sdev,
 		return ret;
 	}
 
-	/* power down core*/
+	/* power down core */
 	ret = hda_dsp_core_power_down(sdev, core_mask);
 	if (ret < 0) {
 		dev_err(sdev->dev, "error: dsp core power down fail mask %x: %d\n",
