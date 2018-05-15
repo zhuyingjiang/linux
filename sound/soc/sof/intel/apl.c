@@ -13,7 +13,7 @@
  */
 
 /*
- * Hardware interface for audio DSP on Apollolake and Cannonlake.
+ * Hardware interface for audio DSP on Apollolake and GeminiLake
  */
 
 #include <linux/delay.h>
