@@ -58,6 +58,8 @@
 
 #define BDW_STACK_DUMP_SIZE	32
 
+#define BDW_PANIC_OFFSET(x)	((x) & 0xFFFF)
+
 static const struct snd_sof_debugfs_map bdw_debugfs[] = {
 	{"dmac0", BDW_DSP_BAR, DMAC0_OFFSET, DMAC_SIZE},
 	{"dmac1", BDW_DSP_BAR, DMAC1_OFFSET, DMAC_SIZE},
@@ -376,10 +378,8 @@ static irqreturn_t bdw_irq_thread(int irq, void *context)
 	if (ipcd & SHIM_IPCD_BUSY) {
 		/* Handle messages from DSP Core */
 		if ((ipcd & SOF_IPC_PANIC_MAGIC_MASK) == SOF_IPC_PANIC_MAGIC) {
-			dev_err(sdev->dev, "error : DSP panic!\n");
-			snd_sof_dsp_cmd_done(sdev);
-			snd_sof_dsp_dbg_dump(sdev, SOF_DBG_REGS | SOF_DBG_MBOX);
-			snd_sof_trace_notify_for_error(sdev);
+			snd_sof_dsp_panic(sdev, BDW_PANIC_OFFSET(ipcx) +
+					  MBOX_OFFSET);
 		} else {
 			snd_sof_ipc_msgs_rx(sdev);
 		}
