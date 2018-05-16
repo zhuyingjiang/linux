@@ -451,9 +451,6 @@ irqreturn_t hda_dsp_stream_threaded_handler(int irq, void *context)
 			    !hdev->pstream[i].running ||
 			    (sd_status & SOF_HDA_CL_DMA_SD_INT_MASK) == 0)
 				continue;
-
-			/* update buffer position to ALSA */
-			snd_pcm_period_elapsed(hdev->pstream[i].substream);
 		}
 	}
 
@@ -480,9 +477,6 @@ irqreturn_t hda_dsp_stream_threaded_handler(int irq, void *context)
 			    !hdev->cstream[i].running ||
 			    (sd_status & SOF_HDA_CL_DMA_SD_INT_MASK) == 0)
 				continue;
-
-			/* update buffer position to ALSA */
-			snd_pcm_period_elapsed(hdev->cstream[i].substream);
 		}
 	}
 
