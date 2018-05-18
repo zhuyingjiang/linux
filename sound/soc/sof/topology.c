@@ -94,6 +94,7 @@ static u32 vol_pow32(u32 a, int exp, u32 fwl)
 {
 	int i, iter;
 	u32 power = 1 << fwl;
+	u64 numerator;
 
 	/* if exponent is 0, return 1 */
 	if (exp == 0)
@@ -119,7 +120,10 @@ static u32 vol_pow32(u32 a, int exp, u32 fwl)
 	}
 
 	/* if exp is negative, return the multiplicative inverse */
-	return (u32)((u64)(1 << fwl) * (1 << fwl) / power);
+	numerator = (u64)1 << (fwl << 1);
+	do_div(numerator, power);
+
+	return (u32)numerator;
 }
 
 /* Function to calculate volume gain from TLV data
