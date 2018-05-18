@@ -156,6 +156,7 @@ static int cnl_be_fixup(struct snd_soc_pcm_runtime *rtd,
 	return 0;
 }
 
+#if !IS_ENABLED(CONFIG_SND_SOC_SOF_INTEL)
 static int cnl_dmic_fixup(struct snd_soc_pcm_runtime *rtd,
 			  struct snd_pcm_hw_params *params)
 {
@@ -166,8 +167,8 @@ static int cnl_dmic_fixup(struct snd_soc_pcm_runtime *rtd,
 
 	return 0;
 }
+#endif
 
-static const char pname[] = "0000:00:1f.3";
 static const char cname[] = "i2c-INT34C2:00";
 
 struct snd_soc_dai_link cnl_rt274_dailink[] = {
@@ -176,7 +177,6 @@ struct snd_soc_dai_link cnl_rt274_dailink[] = {
 		.cpu_dai_name = "SSP0 Pin",
 		.codec_name = cname,
 		.codec_dai_name = "rt274-aif1",
-		.platform_name = pname,
 		.be_hw_params_fixup = cnl_be_fixup,
 		.ignore_pmdown_time = 1,
 		.no_pcm = 1,
@@ -186,27 +186,19 @@ struct snd_soc_dai_link cnl_rt274_dailink[] = {
 		.dpcm_capture = 1,
 		.init = cnl_rt274_init,
 	},
+#if !IS_ENABLED(CONFIG_SND_SOC_SOF_INTEL)
 	{
 		.name = "dmic01",
 		.cpu_dai_name = "DMIC01 Pin",
 		.codec_name = "dmic-codec",
 		.codec_dai_name = "dmic-hifi",
-		.platform_name = pname,
 		.ignore_suspend = 1,
 		.no_pcm = 1,
 		.dpcm_capture = 1,
 		.be_hw_params_fixup = cnl_dmic_fixup,
 	},
+#endif
 };
-
-static int
-cnl_add_dai_link(struct snd_soc_card *card, struct snd_soc_dai_link *link)
-{
-	link->platform_name = pname;
-	link->nonatomic = 1;
-
-	return 0;
-}
 
 /* SoC card */
 static struct snd_soc_card snd_soc_card_cnl = {
@@ -219,7 +211,6 @@ static struct snd_soc_card snd_soc_card_cnl = {
 	.num_dapm_routes = ARRAY_SIZE(cnl_map),
 	.controls = cnl_controls,
 	.num_controls = ARRAY_SIZE(cnl_controls),
-	.add_dai_link = cnl_add_dai_link,
 	.fully_routed = true,
 };
 
