@@ -111,7 +111,7 @@ static struct snd_soc_jack cnl_headset;
 static int cnl_rt274_init(struct snd_soc_pcm_runtime *runtime)
 {
 	int ret;
-	struct snd_soc_codec *codec = runtime->codec;
+	struct snd_soc_component *codec = runtime->codec_dai->component;
 	struct snd_soc_card *card = runtime->card;
 	struct snd_soc_dai *codec_dai = runtime->codec_dai;
 
@@ -123,7 +123,7 @@ static int cnl_rt274_init(struct snd_soc_pcm_runtime *runtime)
 	if (ret)
 		return ret;
 
-	snd_soc_codec_set_jack(codec, &cnl_headset, NULL);
+	snd_soc_component_set_jack(codec, &cnl_headset, NULL);
 
 	/* TDM 4 slots 24 bit, set Rx & Tx bitmask to 4 active slots */
 	ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xF, 0xF, 4, 24);
