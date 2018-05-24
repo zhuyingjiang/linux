@@ -61,7 +61,7 @@ int snd_sof_volume_get(struct snd_kcontrol *kcontrol,
 	for (i = 0; i < channels; i++)
 		ucontrol->value.integer.value[i] =
 			ipc_to_mixer(cdata->chanv[i].value,
-				     scontrol->volume_table, sm->max);
+				     scontrol->volume_table, sm->max + 1);
 
 	pm_runtime_mark_last_busy(sdev->dev);
 	pm_runtime_put_autosuspend(sdev->dev);
@@ -84,7 +84,7 @@ int snd_sof_volume_put(struct snd_kcontrol *kcontrol,
 	for (i = 0; i < channels; i++) {
 		cdata->chanv[i].value =
 			mixer_to_ipc(ucontrol->value.integer.value[i],
-				     scontrol->volume_table, sm->max);
+				     scontrol->volume_table, sm->max + 1);
 		cdata->chanv[i].channel = i;
 	}
 
