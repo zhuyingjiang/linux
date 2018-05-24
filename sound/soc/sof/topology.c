@@ -975,7 +975,7 @@ static int sof_widget_load_pga(struct snd_soc_component *scomp, int index,
 	}
 
 	/* set up volume table */
-	if (set_up_volume_table(scontrol, tlv, sm->max) < 0) {
+	if (set_up_volume_table(scontrol, tlv, sm->max + 1) < 0) {
 		dev_err(sdev->dev, "error: setting up volume table\n");
 		return -ENOMEM;
 	}
