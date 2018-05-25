@@ -1147,7 +1147,7 @@ static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 	memset(&reply, 0, sizeof(reply));
 
 	dev_dbg(sdev->dev, "tplg: ready widget id %d pipe %d type %d name : %s stream %s\n",
-		swidget->comp_id, index, tw->id, tw->name,
+		swidget->comp_id, index, swidget->id, tw->name,
 		tw->sname ? tw->sname : "none");
 
 	/* handle any special case widgets */
@@ -1210,7 +1210,7 @@ static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 	case snd_soc_dapm_effect:
 	default:
 		dev_warn(sdev->dev, "warning: widget type %d name %s not handled\n",
-			 tw->id, tw->name);
+			 swidget->id, tw->name);
 		break;
 	}
 
@@ -1218,7 +1218,7 @@ static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 	if (ret < 0 || reply.rhdr.error < 0) {
 		dev_err(sdev->dev,
 			"error: DSP failed to add widget id %d type %d name : %s stream %s reply %d\n",
-			tw->shift, tw->id, tw->name,
+			tw->shift, swidget->id, tw->name,
 			tw->sname ? tw->sname : "none", reply.rhdr.error);
 		return ret;
 	}
