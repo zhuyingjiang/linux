@@ -171,7 +171,7 @@ static int cnl_dmic_fixup(struct snd_soc_pcm_runtime *rtd,
 
 static const char cname[] = "i2c-INT34C2:00";
 
-struct snd_soc_dai_link cnl_rt274_dailink[] = {
+static struct snd_soc_dai_link cnl_rt274_dailink[] = {
 	{
 		.name = "SSP0-Codec",
 		.cpu_dai_name = "SSP0 Pin",
