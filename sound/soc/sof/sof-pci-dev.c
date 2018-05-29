@@ -60,6 +60,30 @@ static struct sof_dev_desc bxt_desc = {
 };
 #endif
 
+#if IS_ENABLED(CONFIG_SND_SOC_SOF_GEMINILAKE)
+static struct snd_soc_acpi_mach sof_glk_machines[] = {
+	{
+		.id = "DLGS7219",
+		.drv_name = "bxt_da7219_max98357a_i2s",
+		.sof_fw_filename = "intel/sof-glk.ri",
+		.sof_tplg_filename = "intel/sof-glk.tplg",
+		.asoc_plat_name = "0000:00:0e.0",
+	},
+	{},
+};
+
+static struct sof_dev_desc glk_desc = {
+	.machines		= sof_glk_machines,
+	.resindex_lpe_base	= 0,
+	.resindex_pcicfg_base	= -1,
+	.resindex_imr_base	= -1,
+	.irqindex_host_ipc	= -1,
+	.resindex_dma_base	= -1,
+	.nocodec_fw_filename = "intel/sof-glk.ri",
+	.nocodec_tplg_filename = "intel/sof-glk-nocodec.tplg"
+};
+#endif
+
 #if IS_ENABLED(CONFIG_SND_SOC_SOF_BAYTRAIL)
 static struct snd_soc_acpi_mach sof_byt_machines[] = {
 	{
@@ -308,6 +332,9 @@ static const struct dev_pm_ops sof_pci_pm = {
 static const struct sof_ops_table mach_ops[] = {
 #if IS_ENABLED(CONFIG_SND_SOC_SOF_APOLLOLAKE)
 	{&bxt_desc, &sof_apl_ops},
+#endif
+#if IS_ENABLED(CONFIG_SND_SOC_SOF_GEMINILAKE)
+	{&glk_desc, &sof_apl_ops},
 #endif
 #if IS_ENABLED(CONFIG_SND_SOC_SOF_BAYTRAIL)
 	{&byt_desc, &sof_byt_ops},
