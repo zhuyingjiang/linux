@@ -1876,9 +1876,9 @@ static void soc_check_tplg_fes(struct snd_soc_card *card)
 	struct snd_soc_dai_link *dai_link;
 	int i;
 
-	list_for_each_entry(component, &card->component_dev_list, card_list) {
+	list_for_each_entry(component, &component_list, list) {
 
-		/* does this platform override FEs ? */
+		/* does this component override FEs ? */
 		if (!component->driver->ignore_machine)
 			continue;
 
