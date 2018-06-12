@@ -1021,6 +1021,7 @@ struct snd_soc_card {
 	struct mutex dapm_mutex;
 
 	bool instantiated;
+	bool topology_shortname_created;
 
 	int (*probe)(struct snd_soc_card *card);
 	int (*late_probe)(struct snd_soc_card *card);

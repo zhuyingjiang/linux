@@ -1873,6 +1873,7 @@ EXPORT_SYMBOL_GPL(snd_soc_set_dmi_name);
 static void soc_check_tplg_fes(struct snd_soc_card *card)
 {
 	struct snd_soc_component *component;
+	const struct snd_soc_component_driver *comp_drv;
 	struct snd_soc_dai_link *dai_link;
 	int i;
 
@@ -1922,12 +1923,19 @@ static void soc_check_tplg_fes(struct snd_soc_card *card)
 		}
 
 		/* Inform userspace we are using alternate topology */
-		if (component->driver->topology_name_prefix &&
-			card->name != card->topology_shortname) {
+		if (component->driver->topology_name_prefix) {
 
-			snprintf(card->topology_shortname, 32, "%s-%s",
-				 component->driver->topology_name_prefix,
-				 card->name);
+			/* topology shortname created ? */
+			if (!card->topology_shortname_created) {
+				comp_drv = component->driver;
+
+				snprintf(card->topology_shortname, 32, "%s-%s",
+					 comp_drv->topology_name_prefix,
+					 card->name);
+				card->topology_shortname_created = true;
+			}
+
+			/* use topology shortname */
 			card->name = card->topology_shortname;
 		}
 	}
