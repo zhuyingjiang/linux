@@ -205,9 +205,8 @@ static int sof_probe(struct platform_device *pdev)
 	spin_lock_init(&sdev->ipc_lock);
 	spin_lock_init(&sdev->hw_lock);
 
-	/* set up platform and component drivers */
+	/* set up platform component driver */
 	snd_sof_new_platform_drv(sdev);
-	snd_sof_new_dai_drv(sdev);
 
 	/* set default timeouts if none provided */
 	if (plat_data->desc->ipc_timeout == 0)
@@ -259,13 +258,15 @@ static int sof_probe(struct platform_device *pdev)
 
 	/* now register audio DSP platform driver and dai */
 	ret = snd_soc_register_component(&pdev->dev,  &sdev->plat_drv,
-					 &sdev->dai_drv, sdev->num_dai);
+					 sdev->ops->drv,
+					 sdev->ops->num_drv);
 	if (ret < 0) {
 		dev_err(sdev->dev,
 			"error: failed to register DSP DAI driver %d\n", ret);
 		goto comp_err;
 	}
 
+	/* init DMA trace */
 	ret = snd_sof_init_trace(sdev);
 	if (ret < 0) {
 		dev_warn(sdev->dev,
