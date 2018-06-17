@@ -1902,9 +1902,8 @@ static void soc_check_tplg_fes(struct snd_soc_card *card)
 			dev_info(card->dev, "info: override FE DAI link %s\n",
 				 card->dai_link[i].name);
 
-			/* override platform */
+			/* override platform component */
 			dai_link->platform_name = component->name;
-			dai_link->cpu_dai_name = component->name;
 
 			/* convert non BE into BE */
 			dai_link->no_pcm = 1;
