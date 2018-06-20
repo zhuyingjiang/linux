@@ -305,9 +305,9 @@ struct snd_sof_dsp_ops sof_cnl_ops = {
 	.dbg_dump	= hda_dsp_dump,
 
 	/* stream callbacks */
-	.host_stream_open = hda_dsp_pcm_open,
-	.host_stream_close = hda_dsp_pcm_close,
-	.host_stream_hw_params = hda_dsp_pcm_hw_params,
+	.pcm_open	= hda_dsp_pcm_open,
+	.pcm_close	= hda_dsp_pcm_close,
+	.pcm_hw_params	= hda_dsp_pcm_hw_params,
 
 	/* firmware loading */
 	.load_firmware = hda_dsp_cl_load_fw,
