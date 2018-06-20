@@ -6,6 +6,8 @@
  * Copyright(c) 2017 Intel Corporation. All rights reserved.
  *
  * Author: Liam Girdwood <liam.r.girdwood@linux.intel.com>
+ *
+ * Dummy SOF machine driver.
  */
 
 #include <linux/init.h>
@@ -21,6 +23,7 @@
 #include <sound/jack.h>
 #include <sound/sof.h>
 
+/* configure the topology files to be loaded */
 int sof_nocodec_setup(struct device *dev,
 		      struct snd_sof_pdata *sof_pdata,
 		      struct snd_soc_acpi_mach *mach,
@@ -42,7 +45,7 @@ EXPORT_SYMBOL(sof_nocodec_setup);
 static int sof_nocodec_codec_fixup(struct snd_soc_pcm_runtime *rtd,
 				   struct snd_pcm_hw_params *params)
 {
-	// TODO: read this from topology
+	/* TODO: read this from topology if needed */
 	return 0;
 }
 
@@ -59,7 +62,7 @@ static int nocodec_rtd_init(struct snd_soc_pcm_runtime *rtd)
 static struct snd_soc_dai_link sof_nocodec_dais[] = {
 	/* Back End DAI links */
 	{
-		/* SSP0 - Codec */
+		/* Generic */
 		.name = "NoCodec",
 		.id = 0,
 		.init = nocodec_rtd_init,
