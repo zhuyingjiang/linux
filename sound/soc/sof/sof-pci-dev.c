@@ -115,10 +115,10 @@ static struct snd_soc_acpi_mach sof_skl_machines[] = {
 		.fw_filename = "intel/dsp_fw_release.bin",
 		.machine_quirk = snd_soc_acpi_codec_list,
 		.quirk_data = &skl_codecs,
-		//.pdata = &skl_dmic_data
 		.sof_fw_filename = "intel/sof-skl.ri",
 		.sof_tplg_filename = "intel/sof-skl.tplg",
 		.asoc_plat_name = "0000:00:1f.03",
+		/* TODO: add DMIC data */
 	},
 	{
 		.id = "MX98357A",
@@ -126,10 +126,10 @@ static struct snd_soc_acpi_mach sof_skl_machines[] = {
 		.fw_filename = "intel/dsp_fw_release.bin",
 		.machine_quirk = snd_soc_acpi_codec_list,
 		.quirk_data = &skl_codecs,
-		//.pdata = &skl_dmic_data
 		.sof_fw_filename = "intel/sof-skl.ri",
 		.sof_tplg_filename = "intel/sof-skl.tplg",
 		.asoc_plat_name = "0000:00:1f.03",
+		/* TODO: add DMIC data */
 	},
 	{}
 };
@@ -182,10 +182,10 @@ static struct snd_soc_acpi_mach sof_kbl_machines[] = {
 		.fw_filename = "intel/dsp_fw_kbl.bin",
 		.machine_quirk = snd_soc_acpi_codec_list,
 		.quirk_data = &kbl_codecs,
-		//.pdata = &skl_dmic_data,
 		.sof_fw_filename = "intel/sof-kbl.ri",
 		.sof_tplg_filename = "intel/sof-kbl.tplg",
 		.asoc_plat_name = "0000:00:1f.03",
+		/* TODO: add DMIC data */
 	},
 	{
 		.id = "MX98357A",
@@ -193,10 +193,10 @@ static struct snd_soc_acpi_mach sof_kbl_machines[] = {
 		.fw_filename = "intel/dsp_fw_kbl.bin",
 		.machine_quirk = snd_soc_acpi_codec_list,
 		.quirk_data = &kbl_codecs,
-		//.pdata = &skl_dmic_data,
 		.sof_fw_filename = "intel/sof-kbl.ri",
 		.sof_tplg_filename = "intel/sof-kbl.tplg",
 		.asoc_plat_name = "0000:00:1f.03",
+		/* TODO: add DMIC data */
 	},
 	{
 		.id = "MX98927",
@@ -204,10 +204,10 @@ static struct snd_soc_acpi_mach sof_kbl_machines[] = {
 		.fw_filename = "intel/dsp_fw_kbl.bin",
 		.machine_quirk = snd_soc_acpi_codec_list,
 		.quirk_data = &kbl_5663_5514_codecs,
-		//.pdata = &skl_dmic_data,
 		.sof_fw_filename = "intel/sof-kbl.ri",
 		.sof_tplg_filename = "intel/sof-kbl.tplg",
 		.asoc_plat_name = "0000:00:1f.03",
+		/* TODO: add DMIC data */
 	},
 	{
 		.id = "MX98927",
@@ -215,10 +215,10 @@ static struct snd_soc_acpi_mach sof_kbl_machines[] = {
 		.fw_filename = "intel/dsp_fw_kbl.bin",
 		.machine_quirk = snd_soc_acpi_codec_list,
 		.quirk_data = &kbl_poppy_codecs,
-		//.pdata = &skl_dmic_data,
 		.sof_fw_filename = "intel/sof-kbl.ri",
 		.sof_tplg_filename = "intel/sof-kbl.tplg",
 		.asoc_plat_name = "0000:00:1f.03",
+		/* TODO: add DMIC data */
 	},
 	{
 		.id = "10EC5663",
@@ -234,10 +234,10 @@ static struct snd_soc_acpi_mach sof_kbl_machines[] = {
 		.fw_filename = "intel/dsp_fw_kbl.bin",
 		.machine_quirk = snd_soc_acpi_codec_list,
 		.quirk_data = &kbl_7219_98357_codecs,
-		//.pdata = &skl_dmic_data,
 		.sof_fw_filename = "intel/sof-kbl.ri",
 		.sof_tplg_filename = "intel/sof-kbl.tplg",
 		.asoc_plat_name = "0000:00:1f.03",
+		/* TODO: add DMIC data */
 	},
 
 	{}
@@ -417,11 +417,6 @@ static int sof_pci_probe(struct pci_dev *pci,
 	return ret;
 }
 
-static void sof_pci_shutdown(struct pci_dev *pci)
-{
-	snd_sof_shutdown(&pci->dev);
-}
-
 static void sof_pci_remove(struct pci_dev *pci)
 {
 	struct sof_pci_priv *priv = pci_get_drvdata(pci);
@@ -469,7 +464,6 @@ static struct pci_driver snd_sof_pci_driver = {
 	.id_table = sof_pci_ids,
 	.probe = sof_pci_probe,
 	.remove = sof_pci_remove,
-	.shutdown = sof_pci_shutdown,
 	.driver = {
 		.pm = &sof_pci_pm,
 	},
