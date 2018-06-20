@@ -1026,6 +1026,40 @@ static struct snd_soc_dai_driver hsw_dais[] = {
 			.formats = SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S16_LE,
 		},
 	},
+	{
+		.name = "SSP0 Pin",
+		.playback = {
+			.stream_name = "ssp0 Tx",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_192000,
+			.formats = HSW_FORMATS,
+		},
+		.capture = {
+			.stream_name = "ssp0 Rx",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_192000,
+			.formats = SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S16_LE,
+		},
+	},
+	{
+		.name = "SSP1 Pin",
+		.playback = {
+			.stream_name = "ssp1 Tx",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_192000,
+			.formats = HSW_FORMATS,
+		},
+		.capture = {
+			.stream_name = "ssp1 Rx",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_192000,
+			.formats = SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S16_LE,
+		},
+	},
 };
 
 static const struct snd_soc_dapm_widget widgets[] = {

@@ -2193,6 +2193,15 @@ int sst_hsw_dsp_init(struct device *dev, struct sst_pdata *pdata)
 		goto boot_err;
 	}
 
+	/* Set default ADSP SSP port settings */
+	ret = sst_hsw_device_set_config(hsw, SST_HSW_DEVICE_SSP_0,
+		SST_HSW_DEVICE_MCLK_FREQ_24_MHZ,
+		SST_HSW_DEVICE_CLOCK_MASTER, 9);
+	if (ret < 0) {
+		dev_err(hsw->dev, "error: failed to set device config\n");
+		goto boot_err;
+	}
+
 	pdata->dsp = hsw;
 	return 0;
 
