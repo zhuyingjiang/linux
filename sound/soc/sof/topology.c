@@ -26,6 +26,10 @@
 
 #define COMP_ID_UNASSIGNED		0xffffffff
 
+/*
+ * Supported DAI types and lookup, add new ones to end of list .
+ */
+
 struct sof_dai_types {
 	const char *name;
 	enum sof_ipc_dai_type type;
@@ -48,6 +52,10 @@ static enum sof_ipc_dai_type find_dai(const char *name)
 
 	return SOF_DAI_INTEL_NONE;
 }
+
+/*
+ * Supported Frame format types and lookup, add new ones to end of list .
+ */
 
 struct sof_frame_types {
 	const char *name;
@@ -107,11 +115,12 @@ static int sof_control_load_volume(struct snd_soc_component *scomp,
 		scontrol->comp_id, scontrol->num_channels);
 
 	return 0;
-	/* configure channel IDs */
-	//for (i = 0; i < mc->num_channels; i++) {
-	//	v.pcm.chmap[i] = mc->channel[i].id;
-	//}
 }
+
+/*
+ * Topology Token Parsing.
+ * New tokens should be added to headers and parsing tables below.
+ */
 
 struct sof_topology_token {
 	u32 token;
@@ -1037,6 +1046,7 @@ static int sof_widget_load(struct snd_soc_component *scomp, int index,
 			   struct snd_soc_dapm_widget *w,
 			   struct snd_soc_tplg_dapm_widget *tw)
 {
+	/* nothing todo atm */
 	return 0;
 }
 
@@ -1195,6 +1205,10 @@ static int sof_widget_unload(struct snd_soc_component *scomp,
 
 	return 0;
 }
+
+/*
+ * DAI HW configuration.
+ */
 
 /* FE DAI - used for any driver specific init */
 static int sof_dai_load(struct snd_soc_component *scomp, int index,
@@ -1689,6 +1703,7 @@ static int sof_route_load(struct snd_soc_component *scomp, int index,
 static int sof_route_unload(struct snd_soc_component *scomp,
 			    struct snd_soc_dobj *dobj)
 {
+	/* TODO: unload routes when yopology is changed */
 	return 0;
 }
 
@@ -1742,6 +1757,7 @@ static void sof_complete(struct snd_soc_component *scomp)
 static int sof_manifest(struct snd_soc_component *scomp, int index,
 			struct snd_soc_tplg_manifest *man)
 {
+	/* not currently parsed */
 	return 0;
 }
 
