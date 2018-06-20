@@ -120,16 +120,16 @@ struct snd_sof_dsp_ops {
 	void (*dbg_dump)(struct snd_sof_dev *sof_dev, u32 flags);
 
 	/* connect pcm substream to a host stream */
-	int (*host_stream_open)(struct snd_sof_dev *sdev,
-				struct snd_pcm_substream *substream);
+	int (*pcm_open)(struct snd_sof_dev *sdev,
+			struct snd_pcm_substream *substream);
 	/* disconnect pcm substream to a host stream */
-	int (*host_stream_close)(struct snd_sof_dev *sdev,
-				 struct snd_pcm_substream *substream);
+	int (*pcm_close)(struct snd_sof_dev *sdev,
+			 struct snd_pcm_substream *substream);
 
 	/* host stream hw params */
-	int (*host_stream_hw_params)(struct snd_sof_dev *sdev,
-				     struct snd_pcm_substream *substream,
-				     struct snd_pcm_hw_params *params);
+	int (*pcm_hw_params)(struct snd_sof_dev *sdev,
+			     struct snd_pcm_substream *substream,
+			     struct snd_pcm_hw_params *params);
 
 	/* FW loading */
 	int (*load_firmware)(struct snd_sof_dev *sof_dev,
@@ -330,6 +330,7 @@ struct snd_sof_dev {
 	wait_queue_head_t trace_sleep;
 	u32 host_offset;
 	bool dtrace_is_enabled;
+	bool dtrace_error;
 
 	void *private;			/* core does not touch this */
 };
