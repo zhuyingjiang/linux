@@ -16,6 +16,7 @@
  * Hardware interface for HDA DSP code loader
  */
 
+#include <linux/mm.h>
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
@@ -33,6 +34,8 @@
 #include "../sof-priv.h"
 #include "../ops.h"
 #include "hda.h"
+
+#include "../../intel/skylake/skl-sst-cldma.h"
 
 static int cl_stream_prepare(struct snd_sof_dev *sdev, unsigned int format,
 			     unsigned int size, struct snd_dma_buffer *dmab,
@@ -373,16 +376,139 @@ irq_err:
 	return ret;
 }
 
+/* Code loader helper APIs */
+static int cl_skl_cldma_setup_bdle(struct snd_sof_dev *sdev,
+				    struct snd_dma_buffer *dmab_data,
+				    u32 **bdlp, int size, int with_ioc)
+{
+	u32 *bdl = *bdlp;
+	int frags = 0;
+
+	while (size > 0) {
+		phys_addr_t addr = virt_to_phys(dmab_data->area +
+						(frags * size));
+
+		bdl[0] = cpu_to_le32(lower_32_bits(addr));
+		bdl[1] = cpu_to_le32(upper_32_bits(addr));
+
+		bdl[2] = cpu_to_le32(size);
+
+		size -= size;
+		bdl[3] = (size || !with_ioc) ? 0 : cpu_to_le32(0x01);
+
+		bdl += 4;
+		frags++;
+	}
+
+	return frags;
+}
+
+static void cl_skl_cldma_stream_run(struct snd_sof_dev *sdev, bool enable)
+{
+	unsigned char val;
+	int timeout;
+
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_RUN_MASK, CL_SD_CTL_RUN(enable));
+
+	udelay(3);
+	timeout = 300;
+	do {
+		/* waiting for hardware to report the stream Run bit set */
+		val = snd_sof_dsp_read(sdev, HDA_DSP_HDA_BAR,
+				       SKL_ADSP_REG_CL_SD_CTL) &
+				       CL_SD_CTL_RUN_MASK;
+		if (enable && val)
+			break;
+		else if (!enable && !val)
+			break;
+		udelay(3);
+	} while (--timeout);
+
+	if (timeout == 0)
+		dev_err(sdev->dev, "Failed to set Run bit=%d enable=%d\n",
+			val, enable);
+}
+
+/*
+ * Setup controller
+ * Configure the registers to update the dma buffer address and
+ * enable interrupts.
+ * Note: Using the channel 1 for transfer
+ */
+static void cl_skl_cldma_setup_controller(struct snd_sof_dev *sdev,
+		struct snd_dma_buffer *dmab_bdl, unsigned int max_size,
+		u32 count)
+{
+	/* make sure Run bit is cleared before setting stream register */
+	cl_skl_cldma_stream_run(sdev, 0);
+
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_IOCE_MASK, CL_SD_CTL_IOCE(0));
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_FEIE_MASK, CL_SD_CTL_FEIE(0));
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_DEIE_MASK, CL_SD_CTL_DEIE(0));
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_STRM_MASK, CL_SD_CTL_STRM(0));
+
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_BDLPL,
+			  CL_SD_BDLPLBA(0));
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_BDLPU, 0);
+
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CBL, 0);
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_LVI, 0);
+
+	/* setting the stream register */
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_BDLPL,
+			  CL_SD_BDLPLBA(dmab_bdl->addr));
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_BDLPU,
+			  CL_SD_BDLPUBA(dmab_bdl->addr));
+
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CBL,
+			  max_size);
+	snd_sof_dsp_write(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_LVI,
+			  count - 1);
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_IOCE_MASK, CL_SD_CTL_IOCE(1));
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_FEIE_MASK, CL_SD_CTL_FEIE(1));
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_DEIE_MASK, CL_SD_CTL_DEIE(1));
+	snd_sof_dsp_update_bits(sdev, HDA_DSP_HDA_BAR, SKL_ADSP_REG_CL_SD_CTL,
+				CL_SD_CTL_STRM_MASK,
+				CL_SD_CTL_STRM(FW_CL_STREAM_NUMBER));
+}
+
 /*
  * skl/kbl enable core and code loader DMA has some difference with apl/cnl
  * add the APIs for skl/kbl
  */
-static int cl_stream_prepare_skl(struct snd_sof_dev *sdev, unsigned int format,
-				 unsigned int size, struct snd_dma_buffer *dmab,
-				 int direction)
+static int cl_stream_prepare_skl(struct snd_sof_dev *sdev)
 {
-	/* the skl cl dma don't use stream tag, ret is for debug */
+	struct pci_dev *pci = sdev->pci;
+	int frags = 0;
 	int ret = 0;
+	u32 *bdl;
+	unsigned int bufsize = SKL_MAX_BUFFER_SIZE;
+
+	ret = snd_dma_alloc_pages(SNDRV_DMA_TYPE_DEV, &pci->dev, bufsize,
+				  &sdev->dmab);
+	if (ret < 0) {
+		dev_err(sdev->dev, "Alloc base fw buffer failed: %x\n", ret);
+		return ret;
+	}
+	ret = snd_dma_alloc_pages(SNDRV_DMA_TYPE_DEV, &pci->dev, bufsize,
+				  &sdev->dmab_bdl);
+	if (ret < 0) {
+		dev_err(sdev->dev, "Alloc buffer for blde failed: %x\n", ret);
+		snd_dma_free_pages(&sdev->dmab);
+		return ret;
+	}
+	bdl = (u32 *)sdev->dmab_bdl.area;
+
+	frags = cl_skl_cldma_setup_bdle(sdev, &sdev->dmab, &bdl, bufsize, 1);
+	cl_skl_cldma_setup_controller(sdev, &sdev->dmab_bdl, bufsize, frags);
 	return ret;
 }
 
@@ -390,9 +516,7 @@ static int cl_dsp_init_skl(struct snd_sof_dev *sdev, const void *fwdata,
 			   u32 fwsize)
 {
 	const struct sof_intel_dsp_desc *chip = sdev->hda->desc;
-	int ret, i;
-	u32 hipcie;
-	u32 reg;
+	int ret;
 
 	/* check if the core is already enabled, if yes, reset and make it run,
 	 * if not, powerdown and enable it again.
@@ -423,16 +547,12 @@ static int cl_dsp_init_skl(struct snd_sof_dev *sdev, const void *fwdata,
 	}
 
 	/* prepare DMA for code loader stream */
-	ret = cl_stream_prepare_skl(sdev, 0x40, fwsize, &sdev->dmab,
-				    SNDRV_PCM_STREAM_PLAYBACK);
-
-	if (ret <= 0) {
+	ret = cl_stream_prepare_skl(sdev);
+	if (ret < 0) {
 		dev_err(sdev->dev, "error: dma prepare fw loading err: %x\n",
 			ret);
 		return ret;
 	}
-
-	memcpy(sdev->dmab.area, fwdata, fwsize);
 
 	/* enable the interrupt */
 	snd_sof_dsp_update_bits(sdev, HDA_DSP_BAR, HDA_DSP_REG_ADSPIC,
