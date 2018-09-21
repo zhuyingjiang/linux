@@ -762,6 +762,7 @@ irq_err:
 	/* power down DSP */
 	hda_dsp_core_reset_power_down(sdev, HDA_DSP_CORE_MASK(0));
 	cl_cleanup_skl(sdev);
+
 	dev_err(sdev->dev, "error: load fw failed err: %d\n", ret);
 	return ret;
 }

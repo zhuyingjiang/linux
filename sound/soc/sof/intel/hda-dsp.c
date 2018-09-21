@@ -26,6 +26,7 @@
 #include <linux/firmware.h>
 #include <linux/pci.h>
 #include <sound/hdaudio_ext.h>
+#include <sound/hda_i915.h>
 #include <sound/hda_register.h>
 #include <sound/sof.h>
 #include <sound/pcm_params.h>
@@ -209,6 +210,19 @@ bool hda_dsp_core_is_enabled(struct snd_sof_dev *sdev,
 	return is_enable;
 }
 
+int hda_dsp_core_stall_reset_skl(struct snd_sof_dev *sdev,
+				 unsigned int core_mask)
+{
+	/* stall core */
+	snd_sof_dsp_update_bits_unlocked(sdev, HDA_DSP_BAR,
+					 HDA_DSP_REG_ADSPCS,
+					 HDA_DSP_ADSPCS_CSTALL_MASK(core_mask),
+					 HDA_DSP_ADSPCS_CSTALL_MASK(core_mask));
+
+	/* set reset state */
+	return hda_dsp_core_reset_enter(sdev, core_mask);
+}
+
 int hda_dsp_enable_core(struct snd_sof_dev *sdev, unsigned int core_mask)
 {
 	int ret;
@@ -255,14 +269,16 @@ int hda_dsp_core_reset_power_down(struct snd_sof_dev *sdev,
 	return ret;
 }
 
-int hda_dsp_suspend(struct snd_sof_dev *sdev, int state)
+static int hda_suspend(struct snd_sof_dev *sdev, int state)
 {
 	const struct sof_intel_dsp_desc *chip = sdev->hda->desc;
 	struct hdac_bus *bus = sof_to_bus(sdev);
 	int ret = 0;
 
+#if IS_ENABLED(CONFIG_SND_SOC_SOF_HDA)
 	/* power down all hda link */
 	snd_hdac_ext_bus_link_power_down_all(bus);
+#endif
 
 	/* power down DSP */
 	ret = hda_dsp_core_reset_power_down(sdev, chip->cores_mask);
@@ -272,21 +288,28 @@ int hda_dsp_suspend(struct snd_sof_dev *sdev, int state)
 		return ret;
 	}
 
+#if IS_ENABLED(CONFIG_SND_SOC_SOF_HDA)
 	/* disable ppcap interrupt */
 	snd_hdac_ext_bus_ppcap_int_enable(bus, false);
 	snd_hdac_ext_bus_ppcap_enable(bus, false);
 
 	/* disable hda bus irw and i/o */
 	snd_hdac_bus_stop_chip(bus);
+#endif
 
 	/* disable LP retention mode */
 	snd_sof_pci_update_bits(sdev, PCI_TCSEL,
 				PCI_CGCTL_LSRMD_MASK, PCI_CGCTL_LSRMD_MASK);
 
-	return 0;
+	/* reset HDA controller */
+	ret = hda_dsp_ctrl_link_reset(sdev);
+	if (ret < 0)
+		dev_err(sdev->dev, "error: failed to reset HDA controller\n");
+
+	return ret;
 }
 
-int hda_dsp_resume(struct snd_sof_dev *sdev)
+static int hda_resume(struct snd_sof_dev *sdev)
 {
 	const struct sof_intel_dsp_desc *chip = sdev->hda->desc;
 	struct hdac_bus *bus = sof_to_bus(sdev);
@@ -299,6 +322,7 @@ int hda_dsp_resume(struct snd_sof_dev *sdev)
 	 */
 	snd_sof_pci_update_bits(sdev, PCI_TCSEL, 0x07, 0);
 
+#if IS_ENABLED(CONFIG_SND_SOC_SOF_HDA)
 	/* reset and start hda controller */
 	ret = hda_dsp_ctrl_init_chip(sdev, true);
 	if (ret < 0) {
@@ -318,6 +342,7 @@ int hda_dsp_resume(struct snd_sof_dev *sdev)
 	/* enable ppcap interrupt */
 	snd_hdac_ext_bus_ppcap_enable(bus, true);
 	snd_hdac_ext_bus_ppcap_int_enable(bus, true);
+#endif
 
 	/* power up the DSP */
 	ret = hda_dsp_core_power_up(sdev, chip->cores_mask);
@@ -327,6 +352,7 @@ int hda_dsp_resume(struct snd_sof_dev *sdev)
 		return ret;
 	}
 
+#if IS_ENABLED(CONFIG_SND_SOC_SOF_HDA)
 	/* turn off the links that were off before suspend */
 	list_for_each_entry(hlink, &bus->hlink_list, list) {
 		if (!hlink->ref_count)
@@ -336,6 +362,39 @@ int hda_dsp_resume(struct snd_sof_dev *sdev)
 	/* check dma status and clean up CORB/RIRB buffers */
 	if (!bus->cmd_dma_state)
 		snd_hdac_bus_stop_cmd_io(bus);
+#endif
 
 	return 0;
+}
+
+int hda_dsp_resume(struct snd_sof_dev *sdev)
+{
+	struct hdac_bus *bus = sof_to_bus(sdev);
+	int ret;
+
+	/* turn display power on */
+	if (IS_ENABLED(CONFIG_SND_SOC_HDAC_HDMI)) {
+		ret = snd_hdac_display_power(bus, true);
+		if (ret < 0) {
+			dev_err(bus->dev, "Cannot turn on display power on i915 after resume\n");
+			return ret;
+		}
+	}
+
+	return hda_resume(sdev);
+}
+
+int hda_dsp_runtime_resume(struct snd_sof_dev *sdev)
+{
+	return hda_resume(sdev);
+}
+
+int hda_dsp_runtime_suspend(struct snd_sof_dev *sdev, int state)
+{
+	return hda_suspend(sdev, state);
+}
+
+int hda_dsp_suspend(struct snd_sof_dev *sdev, int state)
+{
+	return hda_suspend(sdev, state);
 }

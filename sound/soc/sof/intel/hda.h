@@ -384,6 +384,8 @@ int hda_dsp_core_reset_enter(struct snd_sof_dev *sdev,
 int hda_dsp_core_reset_leave(struct snd_sof_dev *sdev,
 			     unsigned int core_mask);
 int hda_dsp_core_stall_reset(struct snd_sof_dev *sdev, unsigned int core_mask);
+int hda_dsp_core_stall_reset_skl(struct snd_sof_dev *sdev,
+				 unsigned int core_mask);
 int hda_dsp_core_run(struct snd_sof_dev *sdev, unsigned int core_mask);
 int hda_dsp_core_power_up(struct snd_sof_dev *sdev, unsigned int core_mask);
 int hda_dsp_enable_core(struct snd_sof_dev *sdev, unsigned int core_mask);
@@ -394,6 +396,8 @@ int hda_dsp_core_reset_power_down(struct snd_sof_dev *sdev,
 				  unsigned int core_mask);
 int hda_dsp_suspend(struct snd_sof_dev *sdev, int state);
 int hda_dsp_resume(struct snd_sof_dev *sdev);
+int hda_dsp_runtime_suspend(struct snd_sof_dev *sdev, int state);
+int hda_dsp_runtime_resume(struct snd_sof_dev *sdev);
 void hda_dsp_dump(struct snd_sof_dev *sdev, u32 flags);
 
 /*
