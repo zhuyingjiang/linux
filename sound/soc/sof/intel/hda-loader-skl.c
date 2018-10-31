@@ -418,10 +418,24 @@ static void cl_skl_cldma_fill_buffer(struct snd_sof_dev *sdev,
 	cl_skl_cldma_stream_run(sdev, true);
 }
 
-static int cl_skl_cldma_wait_interruptible(struct snd_sof_dev *sdev)
+static int cl_skl_cldma_wait_interruptible(struct snd_sof_dev *sdev,
+					   bool intr_wait)
 {
 	int ret = 0;
 
+	/*
+	 * In polling mode, wait the binary segment is transferred to DSP,
+	 * and can go on with transfer the next segment.
+	 */
+	if (!intr_wait) {
+		usleep_range(3000, 5000);
+		return ret;
+	}
+
+	/*
+	 * Wait the interrupt to inform the binary segment transfer is
+	 * completed, and can go on with the next.
+	 */
 	if (!wait_event_timeout(sdev->waitq,
 				!sdev->code_loading,
 				msecs_to_jiffies(HDA_SKL_WAIT_TIMEOUT))) {
@@ -484,7 +498,7 @@ cl_skl_cldma_copy_to_buf(struct snd_sof_dev *sdev, const void *bin,
 			cl_skl_cldma_fill_buffer(sdev, bufsize, bufsize,
 						 curr_pos, true);
 
-			ret = cl_skl_cldma_wait_interruptible(sdev);
+			ret = cl_skl_cldma_wait_interruptible(sdev, false);
 			if (ret < 0) {
 				dev_err(sdev->dev, "error: fw failed to load. 0x%x bytes remaining\n",
 					bytes_left);
