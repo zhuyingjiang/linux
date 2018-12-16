@@ -2161,6 +2161,12 @@ static int sof_link_hda_process(struct snd_sof_dev *sdev,
 
 	config->hda.link_dma_ch = slot;
 
+	/* Set the DAI config here since both DAI name and direction must
+	 * be matched, this is important for playback and capture with the
+	 * same DAI name.
+	 */
+	dai->dai_config = kmemdup(config, size, GFP_KERNEL);
+
 	/* send message to DSP */
 	ret = sof_ipc_tx_message(sdev->ipc,
 				 config->hdr.cmd, config, size, &reply,
@@ -2248,18 +2254,6 @@ static int sof_link_hda_load(struct snd_soc_component *scomp, int index,
 
 			return ret;
 		}
-	}
-
-	/* set config for all DAI's with name matching the link name */
-	ret = sof_set_dai_config(sdev, size, link, config);
-	if (ret < 0) {
-		if (link->dpcm_playback)
-			dev_err(sdev->dev, "error: failed to save DAI config for playback HDA%d\n",
-				config->dai_index);
-
-		if (link->dpcm_capture)
-			dev_err(sdev->dev, "error: failed to save DAI config for capture HDA%d\n",
-				config->dai_index);
 	}
 
 	return ret;
