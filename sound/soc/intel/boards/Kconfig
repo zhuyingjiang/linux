@@ -377,4 +377,18 @@ config SND_SOC_INTEL_SKL_HDA_DSP_GENERIC_MACH
 
 endif ## SND_SOC_INTEL_SKYLAKE_HDAUDIO_CODEC || SND_SOC_SOF_HDA_AUDIO_CODEC
 
+if SND_SOC_INTEL_CNL || (SND_SOC_SOF_CANNONLAKE && SND_SOC_SOF_HDA_LINK)
+config SND_SOC_INTEL_CML_RT5682_MACH
+	tristate "Cometlake with rt5682 I2S mode"
+	depends on MFD_INTEL_LPSS && I2C && ACPI
+	select SND_SOC_RT5682
+	select SND_SOC_HDAC_HDMI
+	help
+	  This adds support for ASoC machine driver for Cometlake platform
+	  with RT5682 codec.
+	  Say Y or m if you have such a device. This is a recommended option.
+	  If unsure select "N".
+
+endif ## SND_SOC_INTEL_CNL || (SND_SOC_SOF_CANNONLAKE && SND_SOC_SOF_HDA_LINK)
+
 endif ## SND_SOC_INTEL_MACH
