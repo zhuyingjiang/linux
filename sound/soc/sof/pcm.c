@@ -399,6 +399,9 @@ static int sof_pcm_open(struct snd_pcm_substream *substream)
 	if (!spcm)
 		return -EINVAL;
 
+	if (!try_module_get(sdev->dev->driver->owner))
+		return -ENODEV;
+
 	dev_dbg(sdev->dev, "pcm: open stream %d dir %d\n", spcm->pcm.pcm_id,
 		substream->stream);
 
@@ -408,6 +411,7 @@ static int sof_pcm_open(struct snd_pcm_substream *substream)
 	if (ret < 0) {
 		dev_err(sdev->dev, "error: pcm open failed to resume %d\n",
 			ret);
+		module_put(sdev->dev->driver->owner);
 		return ret;
 	}
 
@@ -460,6 +464,7 @@ static int sof_pcm_open(struct snd_pcm_substream *substream)
 		if (err < 0)
 			dev_err(sdev->dev, "error: pcm close failed to idle %d\n",
 				err);
+		module_put(sdev->dev->driver->owner);
 	}
 
 	return ret;
@@ -502,6 +507,8 @@ static int sof_pcm_close(struct snd_pcm_substream *substream)
 	if (err < 0)
 		dev_err(sdev->dev, "error: pcm close failed to idle %d\n",
 			err);
+
+	module_put(sdev->dev->driver->owner);
 
 	return 0;
 }
